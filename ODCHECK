@@ -1,0 +1,26 @@
+import pandas as pd
+
+def compare_edi(orders_data, desadv_data):
+    # Umwandlung in DataFrames (angenommen, die Daten sind vorverarbeitet)
+    df_orders = pd.DataFrame(orders_data)
+    df_desadv = pd.DataFrame(desadv_data)
+    
+    # Zusammenführung über die Artikelnummer (GTIN/EAN)
+    comparison = pd.merge(
+        df_orders, 
+        df_desadv, 
+        on='article_id', 
+        how='outer', 
+        suffixes=('_ordered', '_shipped')
+    )
+    
+    # Berechnung der Differenz
+    comparison['diff'] = comparison['qty_shipped'].fillna(0) - comparison['qty_ordered'].fillna(0)
+    
+    # Status-Logik
+    comparison['status'] = 'OK'
+    comparison.loc[comparison['diff'] < 0, 'status'] = 'Unterlieferung'
+    comparison.loc[comparison['diff'] > 0, 'status'] = 'Überlieferung'
+    comparison.loc[comparison['qty_shipped'].isna(), 'status'] = 'Fehlt im Avis'
+    
+    return comparison
